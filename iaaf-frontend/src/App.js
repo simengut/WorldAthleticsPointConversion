@@ -186,30 +186,32 @@ function App() {
                   </div>
                 </div>
 
-                <div className="mode-toggle">
+                <div className="toggle-group">
+                  <label>Mode:</label>
                   <div className="toggle-container">
                     <div 
-                      className={`toggle-slider ${mode === 'points' ? 'right' : 'left'}`}
-                    />
-                    <div 
-                      className={`toggle-option ${mode === 'performance' ? 'active' : ''}`}
-                      onClick={() => {
-                        setMode('performance');
-                        setPoints(null);
-                        setPerformance('');
-                      }}
-                    >
-                      Performance
-                    </div>
-                    <div 
-                      className={`toggle-option ${mode === 'points' ? 'active' : ''}`}
+                      className={`toggle-option ${mode === 'points' ? 'selected' : ''}`}
                       onClick={() => {
                         setMode('points');
                         setPoints(null);
                         setPerformance('');
+                        setAdjustedPoints(null);
+                        setWindSpeed('');
                       }}
                     >
-                      Points
+                      Result → Points
+                    </div>
+                    <div 
+                      className={`toggle-option ${mode === 'performance' ? 'selected' : ''}`}
+                      onClick={() => {
+                        setMode('performance');
+                        setPoints(null);
+                        setPerformance('');
+                        setAdjustedPoints(null);
+                        setWindSpeed('');
+                      }}
+                    >
+                      Points → Result
                     </div>
                   </div>
                 </div>
@@ -294,7 +296,7 @@ function App() {
                 </div>
 
                 <div>
-                  <label>{mode === 'points' ? 'Performance:' : 'Points:'}</label>
+                  <label>{mode === 'points' ? 'Result:' : 'Points:'}</label>
                   <input
                     type="text"
                     value={mode === 'points' ? performance : points || ''}
@@ -305,7 +307,7 @@ function App() {
                         setPoints(e.target.value);
                       }
                     }}
-                    placeholder={mode === 'points' ? 'Enter performance' : 'Enter points'}
+                    placeholder={mode === 'points' ? getPlaceholderText(eventType) : 'Enter points'}
                   />
                 </div>
 
