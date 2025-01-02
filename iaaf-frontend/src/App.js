@@ -6,6 +6,20 @@ import About from './components/About';
 import EventComparison from './components/EventComparison';
 import { calculateWindModification, WIND_AFFECTED_EVENTS } from './utils/windModification';
 
+const EVENT_CODES = {
+  'High Jump': 'HJ',
+  'Pole Vault': 'PV',
+  'Long Jump': 'LJ',
+  'Triple Jump': 'TJ',
+  'Shot Put': 'SP',
+  'Discus Throw': 'DT',
+  'Hammer Throw': 'HT',
+  'Javelin Throw': 'JT',
+  'Decathlon': 'Decathlon',
+  'Heptathlon': 'Heptathlon',
+  'Pentathlon': 'Pentathlon'
+};
+
 function App() {
   const [activeTab, setActiveTab] = useState('calculator');
   const [gender, setGender] = useState('mens');
@@ -80,14 +94,24 @@ function App() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            event_type: eventType,
+            event_type: EVENT_CODES[eventType] || eventType,
             points: points,
             gender: gender,
             season: season
           }),
         });
         const data = await response.json();
-        setPerformance(data.performance);
+        
+        // Format the performance based on event type
+        if (isCombinedEvent(eventType)) {
+          setPerformance(Math.round(data.performance).toString());
+        } else if (['800m', '1500m', '3000m', '5000m', '10000m'].includes(eventType)) {
+          const minutes = Math.floor(data.performance / 60);
+          const seconds = (data.performance % 60).toFixed(2);
+          setPerformance(`${minutes}:${seconds.padStart(5, '0')}`);
+        } else {
+          setPerformance(data.performance.toFixed(2));
+        }
       }
     } catch (error) {
       console.error('Error:', error);
@@ -116,17 +140,41 @@ function App() {
     }
   };
 
+  const isCombinedEvent = (event) => {
+    return ['Decathlon', 'Heptathlon', 'Pentathlon'].includes(event);
+  };
+
   const renderResults = () => {
     if (!points && !performance) return null;
     
     return (
       <div className="results">
         <h2>Results</h2>
-        <p className="points">
-          {mode === 'points' 
-            ? `${Math.round(points)} points`
-            : performance}
-        </p>
+        {mode === 'points' ? (
+          <>
+            <p className="points">Base Points: {points}</p>
+            {needsWindInput(eventType) && windSpeed && adjustedPoints !== points && (
+              <p className="points">
+                Wind Adjusted Points: {adjustedPoints}
+                <span className="wind-adjustment-info">
+                  ({windSpeed > 0 ? '-' : '+'}{Math.abs(adjustedPoints - points)} points)
+                </span>
+              </p>
+            )}
+          </>
+        ) : (
+          <p className="points">
+            {eventType}: {
+              isCombinedEvent(eventType) 
+                ? Math.round(performance)
+                : ['High Jump', 'Pole Vault', 'Long Jump', 'Triple Jump', 'Shot Put', 'Discus Throw', 'Hammer Throw', 'Javelin Throw'].includes(eventType)
+                  ? `${parseFloat(performance).toFixed(2)}m`
+                  : ['800m', '1500m', '3000m', '5000m', '10000m'].includes(eventType)
+                    ? performance  // Already formatted in mm:ss.xx
+                    : `${parseFloat(performance).toFixed(2)}s`
+            }
+          </p>
+        )}
       </div>
     );
   };
@@ -315,11 +363,18 @@ function App() {
                   <label>{mode === 'points' ? 'Result:' : 'Points:'}</label>
                   <input
                     type="text"
-                    value={performance}
-                    onChange={(e) => setPerformance(e.target.value)}
-                    placeholder={getPlaceholderText(eventType)}
-                    pattern={['800m', '1500m', '3000m', '5000m', '10000m'].includes(eventType) ? 
-                      "^[0-9]{1,2}:[0-5][0-9].[0-9]{2}$" : undefined}
+                    value={mode === 'points' ? performance : points}
+                    onChange={(e) => {
+                      if (mode === 'points') {
+                        setPerformance(e.target.value);
+                      } else {
+                        // Only allow numbers for points input
+                        const value = e.target.value.replace(/[^0-9]/g, '');
+                        setPoints(value);
+                        setPerformance('');
+                      }
+                    }}
+                    placeholder={mode === 'points' ? getPlaceholderText(eventType) : 'Enter points (0-1400)'}
                   />
                 </div>
 
