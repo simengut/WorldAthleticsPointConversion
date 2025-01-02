@@ -1,9 +1,4 @@
 import { useState, useEffect } from 'react';
-import Form from './components/CalculatorForm/Form';
-import WindAdjustment from './components/CalculatorForm/WindAdjustment';
-import ResultsDisplay from './components/CalculatorForm/ResultsDisplay';
-import { needsWindInput, calculateWindModification } from './utils/windModification';
-
 
 const COMPETITION_POINTS = {
   OW: { // Olympic/World Championships
@@ -59,33 +54,16 @@ function CompetitionTable({
   points, 
   eventType, 
   onCalculatePerformance,
-  mode,
-  setMode,
-  gender,
-  setGender,
-  season,
-  setSeason,
-  setEventType,
-  performance,
-  setPerformance,
-  setPoints,
-  windSpeed,
-  setWindSpeed,
-  showWind,
-  setShowWind,
-  adjustedPoints,
-  calculate
 }) {
-  const [basePoints, setBasePoints] = useState('');
   const [baseMeet, setBaseMeet] = useState('');
   const [basePlace, setBasePlace] = useState('');
   const [equivalentPerformances, setEquivalentPerformances] = useState(null);
 
   // Calculate actual performance points (removing competition bonus)
   const getActualPoints = () => {
-    if (!baseMeet || !basePlace) return basePoints;
+    if (!baseMeet || !basePlace) return points;
     const competitionPoints = COMPETITION_POINTS[baseMeet][parseInt(basePlace)] || 0;
-    return basePoints - competitionPoints;
+    return points - competitionPoints;
   };
 
   // Calculate equivalent points for a given meet and place
@@ -97,7 +75,7 @@ function CompetitionTable({
 
   // Calculate required performance for equivalent points
   const calculateEquivalentPerformances = async () => {
-    const totalPoints = basePoints;
+    const totalPoints = points;
     const results = {};
 
     for (const meet of Object.keys(MEET_LABELS)) {
@@ -119,10 +97,10 @@ function CompetitionTable({
   };
 
   useEffect(() => {
-    if (basePoints && eventType) {
+    if (points && eventType) {
       calculateEquivalentPerformances();
     }
-  }, [basePoints, eventType, baseMeet, basePlace]);
+  }, [points, eventType, baseMeet, basePlace]);
 
   return (
     <div className="competition-page">
@@ -133,12 +111,10 @@ function CompetitionTable({
             <div className="settings-grid">
               <div className="setting-group">
                 <label>Base Points</label>
-                <input
-                  type="number"
-                  value={basePoints}
-                  onChange={(e) => setBasePoints(Number(e.target.value))}
-                  placeholder="Enter points"
-                />
+                <div className="points-display">
+                  {points || 'Enter points'}
+                  <span className="meet-level"></span>
+                </div>
               </div>
               <div className="setting-group">
                 <label>Meet Level</label>
@@ -164,6 +140,40 @@ function CompetitionTable({
           </div>
 
           <div className="tables-container">
+            
+         {/* Required Performances Table */}
+         <div className="table-section">
+              <h3>Required Performances for Equivalent Points</h3>
+              <div className="equivalency-table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Place</th>
+                      {Object.keys(MEET_LABELS).map(meet => (
+                        <th key={meet}>{MEET_LABELS[meet]}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...Array(16)].map((_, index) => {
+                      const place = index + 1;
+                      return (
+                        <tr key={place}>
+                          <td>{place}</td>
+                          {Object.keys(MEET_LABELS).map(meet => (
+                            <td key={meet}>
+                              {equivalentPerformances?.[meet]?.[place] ?? '-'}
+                            </td>
+                          ))}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+
             {/* Total Points Table */}
             <div className="table-section">
               <h3>Total Points (Performance + Placement)</h3>
@@ -185,41 +195,7 @@ function CompetitionTable({
                           <td>{place}</td>
                           {Object.keys(MEET_LABELS).map(meet => (
                             <td key={meet}>
-                              {COMPETITION_POINTS[meet][place] 
-                                ? getEquivalentPoints(meet, place)
-                                : '-'}
-                            </td>
-                          ))}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Required Performances Table */}
-            <div className="table-section">
-              <h3>Required Performances for Equivalent Points</h3>
-              <div className="equivalency-table">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Place</th>
-                      {Object.keys(MEET_LABELS).map(meet => (
-                        <th key={meet}>{MEET_LABELS[meet]}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[...Array(16)].map((_, index) => {
-                      const place = index + 1;
-                      return (
-                        <tr key={place}>
-                          <td>{place}</td>
-                          {Object.keys(MEET_LABELS).map(meet => (
-                            <td key={meet}>
-                              {equivalentPerformances?.[meet]?.[place] ?? '-'}
+                              {points + COMPETITION_POINTS[meet][place] || '-'}
                             </td>
                           ))}
                         </tr>

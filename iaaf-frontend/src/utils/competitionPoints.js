@@ -1,4 +1,4 @@
-const COMPETITION_POINTS = {
+export const COMPETITION_POINTS = {
     OW: { // Olympic/World Championships
       1: 375, 2: 330, 3: 300, 4: 270, 5: 250, 6: 230, 7: 215, 8: 200,
       9: 130, 10: 120, 11: 110, 12: 100, 13: 95, 14: 90, 15: 85, 16: 80
@@ -33,9 +33,9 @@ const COMPETITION_POINTS = {
     F: { // Category F
       1: 15, 2: 10, 3: 5
     }
-  };
+};
   
-  const MEET_LABELS = {
+export const MEET_LABELS = {
     OW: "Olympics/Worlds",
     DF: "Diamond Final",
     GW: "Diamond League",
@@ -46,4 +46,4 @@ const COMPETITION_POINTS = {
     D: "Category D",
     E: "Category E",
     F: "Category F"
-  };
+};
