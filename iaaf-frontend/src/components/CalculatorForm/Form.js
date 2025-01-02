@@ -17,35 +17,64 @@ function Form({
 }) {
   return (
     <>
-      <div className="toggle-container">
-        <button
-          className={`toggle-button ${mode === 'points' ? 'active' : ''}`}
-          onClick={() => setMode('points')}
-        >
-          Performance → Points
-        </button>
-        <button
-          className={`toggle-button ${mode === 'performance' ? 'active' : ''}`}
-          onClick={() => setMode('performance')}
-        >
-          Points → Performance
-        </button>
+      <div className="gender-toggle">
+        <div className="toggle-container">
+          <div 
+            className={`toggle-slider ${gender === 'womens' ? 'right' : 'left'}`}
+          />
+          <div 
+            className={`toggle-option ${gender === 'mens' ? 'active' : ''}`}
+            onClick={() => setGender('mens')}
+          >
+            Men
+          </div>
+          <div 
+            className={`toggle-option ${gender === 'womens' ? 'active' : ''}`}
+            onClick={() => setGender('womens')}
+          >
+            Women
+          </div>
+        </div>
       </div>
 
-      <div>
-        <label>Gender:</label>
-        <select value={gender} onChange={(e) => setGender(e.target.value)}>
-          <option value="mens">Men</option>
-          <option value="womens">Women</option>
-        </select>
+      <div className="season-toggle">
+        <div className="toggle-container">
+          <div 
+            className={`toggle-slider ${season === 'indoor' ? 'right' : 'left'}`}
+          />
+          <div 
+            className={`toggle-option ${season === 'outdoor' ? 'active' : ''}`}
+            onClick={() => setSeason('outdoor')}
+          >
+            Outdoor
+          </div>
+          <div 
+            className={`toggle-option ${season === 'indoor' ? 'active' : ''}`}
+            onClick={() => setSeason('indoor')}
+          >
+            Indoor
+          </div>
+        </div>
       </div>
 
-      <div>
-        <label>Season:</label>
-        <select value={season} onChange={(e) => setSeason(e.target.value)}>
-          <option value="outdoor">Outdoor</option>
-          <option value="indoor">Indoor</option>
-        </select>
+      <div className="mode-toggle">
+        <div className="toggle-container">
+          <div 
+            className={`toggle-slider ${mode === 'performance' ? 'right' : 'left'}`}
+          />
+          <div 
+            className={`toggle-option ${mode === 'points' ? 'active' : ''}`}
+            onClick={() => setMode('points')}
+          >
+            Performance → Points
+          </div>
+          <div 
+            className={`toggle-option ${mode === 'performance' ? 'active' : ''}`}
+            onClick={() => setMode('performance')}
+          >
+            Points → Performance
+          </div>
+        </div>
       </div>
 
       <div>

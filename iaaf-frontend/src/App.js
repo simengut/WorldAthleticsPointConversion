@@ -8,7 +8,7 @@ import { calculateWindModification, WIND_AFFECTED_EVENTS } from './utils/windMod
 import { EVENT_CODES, isCombinedEvent } from './utils/eventCodes';
 import { formatTimeInput, formatPerformance, getPlaceholderText } from './utils/formatters';
 import WindAdjustment from './components/CalculatorForm/WindAdjustment';
-import ResultsDisplay from './components/CalculatorForm/ResultsDisplay';
+import Form from './components/CalculatorForm/Form';
 
 function App() {
   const [activeTab, setActiveTab] = useState('calculator');
@@ -115,6 +115,41 @@ function App() {
     }
   };
 
+  const renderResults = () => {
+    if (!points && !performance) return null;
+    
+    return (
+      <div className="results">
+        <h2>Results</h2>
+        {mode === 'points' ? (
+          <>
+            <p className="points">Base Points: {points}</p>
+            {needsWindInput(eventType) && windSpeed && adjustedPoints !== points && (
+              <p className="points">
+                Wind Adjusted Points: {adjustedPoints}
+                <span className="wind-adjustment-info">
+                  ({windSpeed > 0 ? '-' : '+'}{Math.abs(adjustedPoints - points)} points)
+                </span>
+              </p>
+            )}
+          </>
+        ) : (
+          <p className="points">
+            {eventType}: {
+              isCombinedEvent(eventType) 
+                ? Math.round(performance)
+                : ['High Jump', 'Pole Vault', 'Long Jump', 'Triple Jump', 'Shot Put', 'Discus Throw', 'Hammer Throw', 'Javelin Throw'].includes(eventType)
+                  ? `${parseFloat(performance).toFixed(2)}m`
+                  : ['800m', '1500m', '3000m', '5000m', '10000m'].includes(eventType)
+                    ? performance  // Already formatted in mm:ss.xx
+                    : `${parseFloat(performance).toFixed(2)}s`
+            }
+          </p>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="App">
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
@@ -123,174 +158,20 @@ function App() {
           <div className="content-container">
             <div className="calculator-wrapper">
               <div className="calculator-form">
-                <div className="gender-toggle">
-                  <div className="toggle-container">
-                    <div 
-                      className={`toggle-slider ${gender === 'womens' ? 'right' : 'left'}`}
-                    />
-                    <div 
-                      className={`toggle-option ${gender === 'mens' ? 'active' : ''}`}
-                      onClick={() => setGender('mens')}
-                    >
-                      Men
-                    </div>
-                    <div 
-                      className={`toggle-option ${gender === 'womens' ? 'active' : ''}`}
-                      onClick={() => setGender('womens')}
-                    >
-                      Women
-                    </div>
-                  </div>
-                </div>
-
-                <div className="season-toggle">
-                  <div className="toggle-container">
-                    <div 
-                      className={`toggle-slider ${season === 'indoor' ? 'right' : 'left'}`}
-                    />
-                    <div 
-                      className={`toggle-option ${season === 'outdoor' ? 'active' : ''}`}
-                      onClick={() => setSeason('outdoor')}
-                    >
-                      Outdoor
-                    </div>
-                    <div 
-                      className={`toggle-option ${season === 'indoor' ? 'active' : ''}`}
-                      onClick={() => setSeason('indoor')}
-                    >
-                      Indoor
-                    </div>
-                  </div>
-                </div>
-
-                <div className="toggle-group">
-                  <label>Mode:</label>
-                  <div className="toggle-container">
-                    <div 
-                      className={`toggle-option ${mode === 'points' ? 'selected' : ''}`}
-                      onClick={() => {
-                        setMode('points');
-                        setPoints(null);
-                        setPerformance('');
-                        setAdjustedPoints(null);
-                        setWindSpeed('');
-                      }}
-                    >
-                      Result → Points
-                    </div>
-                    <div 
-                      className={`toggle-option ${mode === 'performance' ? 'selected' : ''}`}
-                      onClick={() => {
-                        setMode('performance');
-                        setPoints(null);
-                        setPerformance('');
-                        setAdjustedPoints(null);
-                        setWindSpeed('');
-                      }}
-                    >
-                      Points → Result
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <label>Event:</label>
-                  <select 
-                    value={eventType}
-                    onChange={(e) => {
-                      setEventType(e.target.value);
-                      if (!needsWindInput(e.target.value)) {
-                        setWindSpeed('');
-                        setAdjustedPoints(null);
-                      }
-                    }}
-                  >
-                    <optgroup label="Track Events">
-                      {season === 'indoor' ? (
-                        <>
-                          <option value="60m">60m</option>
-                          <option value="200m">200m</option>
-                          <option value="400m">400m</option>
-                          <option value="800m">800m</option>
-                          <option value="1500m">1500m</option>
-                          <option value="3000m">3000m</option>
-                        </>
-                      ) : (
-                        <>
-                          <option value="100m">100m</option>
-                          <option value="200m">200m</option>
-                          <option value="400m">400m</option>
-                          <option value="800m">800m</option>
-                          <option value="1500m">1500m</option>
-                          <option value="3000m">3000m</option>
-                          <option value="5000m">5000m</option>
-                          <option value="10000m">10000m</option>
-                        </>
-                      )}
-                    </optgroup>
-                    <optgroup label="Hurdles">
-                      {season === 'indoor' ? (
-                        <option value="60mH">60mH</option>
-                      ) : (
-                        <>
-                          {gender === 'mens' ? (
-                            <option value="110mH">110mH</option>
-                          ) : (
-                            <option value="100mH">100mH</option>
-                          )}
-                          <option value="400mH">400mH</option>
-                        </>
-                      )}
-                    </optgroup>
-                    <optgroup label="Jumps">
-                      <option value="High Jump">High Jump</option>
-                      <option value="Pole Vault">Pole Vault</option>
-                      <option value="Long Jump">Long Jump</option>
-                      <option value="Triple Jump">Triple Jump</option>
-                    </optgroup>
-                    <optgroup label="Throws">
-                      <option value="Shot Put">Shot Put</option>
-                      {season === 'outdoor' && (
-                        <>
-                          <option value="Discus Throw">Discus Throw</option>
-                          <option value="Hammer Throw">Hammer Throw</option>
-                          <option value="Javelin Throw">Javelin Throw</option>
-                        </>
-                      )}
-                    </optgroup>
-                    <optgroup label="Combined Events">
-                      {season === 'indoor' ? (
-                        <>
-                          {gender === 'mens' ? (
-                            <option value="Heptathlon">Heptathlon</option>
-                          ) : (
-                            <option value="Pentathlon">Pentathlon</option>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          {gender === 'mens' ? (
-                            <option value="Decathlon">Decathlon</option>
-                          ) : (
-                            <option value="Heptathlon">Heptathlon</option>
-                          )}
-                        </>
-                      )}
-                    </optgroup>
-                  </select>
-                </div>
-
-                <div>
-                  <label>{mode === 'points' ? 'Result:' : 'Points:'}</label>
-                  <input
-                    type="text"
-                    value={mode === 'points' ? performance : points}
-                    onChange={(e) => mode === 'points' ? setPerformance(e.target.value) : setPoints(e.target.value)}
-                    placeholder={getPlaceholderText(eventType, mode)}
-                    pattern={mode === 'points' && ['800m', '1500m', '3000m', '5000m', '10000m'].includes(eventType) ? 
-                      "^[0-9]{1,2}:[0-5][0-9].[0-9]{2}$" : undefined}
-                  />
-                </div>
+                <Form
+                  mode={mode}
+                  setMode={setMode}
+                  gender={gender}
+                  setGender={setGender}
+                  season={season}
+                  setSeason={setSeason}
+                  eventType={eventType}
+                  setEventType={setEventType}
+                  performance={performance}
+                  setPerformance={setPerformance}
+                  points={points}
+                  setPoints={setPoints}
+                />
 
                 <WindAdjustment
                   eventType={eventType}
@@ -305,17 +186,29 @@ function App() {
                   Calculate
                 </button>
 
-                <ResultsDisplay
-                  mode={mode}
-                  points={points}
-                  performance={performance}
-                  eventType={eventType}
-                  windSpeed={windSpeed}
-                  adjustedPoints={adjustedPoints}
-                />
-
+                {(points || performance) && (
+                  <div className="results">
+                    <h2>Results</h2>
+                    {mode === 'points' ? (
+                      <>
+                        <p className="points">Base Points: {points}</p>
+                        {needsWindInput(eventType) && windSpeed && adjustedPoints !== points && (
+                          <p className="points">
+                            Wind Adjusted Points: {adjustedPoints}
+                            <span className="wind-adjustment-info">
+                              ({windSpeed > 0 ? '-' : '+'}{Math.abs(adjustedPoints - points)} points)
+                            </span>
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <p className="points">{performance}</p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
+
             <div className="comparison-wrapper">
               <EventComparison 
                 points={adjustedPoints || points}
