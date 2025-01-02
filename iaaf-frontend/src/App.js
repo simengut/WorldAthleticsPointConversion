@@ -5,20 +5,10 @@ import CompetitionTable from './CompetitionTable';
 import About from './components/About';
 import EventComparison from './components/EventComparison';
 import { calculateWindModification, WIND_AFFECTED_EVENTS } from './utils/windModification';
-
-const EVENT_CODES = {
-  'High Jump': 'HJ',
-  'Pole Vault': 'PV',
-  'Long Jump': 'LJ',
-  'Triple Jump': 'TJ',
-  'Shot Put': 'SP',
-  'Discus Throw': 'DT',
-  'Hammer Throw': 'HT',
-  'Javelin Throw': 'JT',
-  'Decathlon': 'Decathlon',
-  'Heptathlon': 'Heptathlon',
-  'Pentathlon': 'Pentathlon'
-};
+import { EVENT_CODES, isCombinedEvent } from './utils/eventCodes';
+import { formatTimeInput, formatPerformance, getPlaceholderText } from './utils/formatters';
+import WindAdjustment from './components/CalculatorForm/WindAdjustment';
+import ResultsDisplay from './components/CalculatorForm/ResultsDisplay';
 
 function App() {
   const [activeTab, setActiveTab] = useState('calculator');
@@ -30,24 +20,9 @@ function App() {
   const [points, setPoints] = useState(null);
   const [windSpeed, setWindSpeed] = useState('');
   const [adjustedPoints, setAdjustedPoints] = useState(null);
+  const [showWind, setShowWind] = useState(false);
 
   const needsWindInput = (event) => WIND_AFFECTED_EVENTS.includes(event);
-
-  const formatTimeInput = (input, event) => {
-    if (['800m', '1500m', '3000m', '5000m', '10000m'].includes(event)) {
-      // Convert mm:ss.xx format to seconds for API
-      const parts = input.split(':');
-      if (parts.length === 2) {
-        const minutes = parseInt(parts[0]);
-        const seconds = parseFloat(parts[1]);
-        if (!isNaN(minutes) && !isNaN(seconds)) {
-          return (minutes * 60 + seconds).toFixed(2);
-        }
-      }
-      return null;
-    }
-    return input;
-  };
 
   const calculate = async () => {
     try {
@@ -138,60 +113,6 @@ function App() {
       console.error('Error calculating performance:', error);
       return 'N/A';
     }
-  };
-
-  const isCombinedEvent = (event) => {
-    return ['Decathlon', 'Heptathlon', 'Pentathlon'].includes(event);
-  };
-
-  const renderResults = () => {
-    if (!points && !performance) return null;
-    
-    return (
-      <div className="results">
-        <h2>Results</h2>
-        {mode === 'points' ? (
-          <>
-            <p className="points">Base Points: {points}</p>
-            {needsWindInput(eventType) && windSpeed && adjustedPoints !== points && (
-              <p className="points">
-                Wind Adjusted Points: {adjustedPoints}
-                <span className="wind-adjustment-info">
-                  ({windSpeed > 0 ? '-' : '+'}{Math.abs(adjustedPoints - points)} points)
-                </span>
-              </p>
-            )}
-          </>
-        ) : (
-          <p className="points">
-            {eventType}: {
-              isCombinedEvent(eventType) 
-                ? Math.round(performance)
-                : ['High Jump', 'Pole Vault', 'Long Jump', 'Triple Jump', 'Shot Put', 'Discus Throw', 'Hammer Throw', 'Javelin Throw'].includes(eventType)
-                  ? `${parseFloat(performance).toFixed(2)}m`
-                  : ['800m', '1500m', '3000m', '5000m', '10000m'].includes(eventType)
-                    ? performance  // Already formatted in mm:ss.xx
-                    : `${parseFloat(performance).toFixed(2)}s`
-            }
-          </p>
-        )}
-      </div>
-    );
-  };
-
-  const getPlaceholderText = (eventType) => {
-    if (['100m', '200m', '400m', '60m', '100mH', '110mH', '400mH', '60mH'].includes(eventType)) {
-      return `Enter ${eventType} time (ss.xx)`;
-    } else if (['800m', '1500m', '3000m', '5000m', '10000m'].includes(eventType)) {
-      return `Enter ${eventType} time (mm:ss.xx)`;
-    } else if (['Long Jump', 'Triple Jump'].includes(eventType)) {
-      return `Enter ${eventType} distance (m.cm)`;
-    } else if (['High Jump', 'Pole Vault'].includes(eventType)) {
-      return `Enter ${eventType} height (m.cm)`;
-    } else if (['Shot Put', 'Discus Throw', 'Hammer Throw', 'Javelin Throw'].includes(eventType)) {
-      return `Enter ${eventType} distance (m.cm)`;
-    }
-    return 'Enter performance';
   };
 
   return (
@@ -364,61 +285,35 @@ function App() {
                   <input
                     type="text"
                     value={mode === 'points' ? performance : points}
-                    onChange={(e) => {
-                      if (mode === 'points') {
-                        setPerformance(e.target.value);
-                      } else {
-                        // Only allow numbers for points input
-                        const value = e.target.value.replace(/[^0-9]/g, '');
-                        setPoints(value);
-                        setPerformance('');
-                      }
-                    }}
-                    placeholder={mode === 'points' ? getPlaceholderText(eventType) : 'Enter points (0-1400)'}
+                    onChange={(e) => mode === 'points' ? setPerformance(e.target.value) : setPoints(e.target.value)}
+                    placeholder={getPlaceholderText(eventType, mode)}
+                    pattern={mode === 'points' && ['800m', '1500m', '3000m', '5000m', '10000m'].includes(eventType) ? 
+                      "^[0-9]{1,2}:[0-5][0-9].[0-9]{2}$" : undefined}
                   />
                 </div>
 
-                {/* Wind input for relevant events */}
-                {needsWindInput(eventType) && mode === 'points' && (
-                  <div className="wind-input">
-                    <label>Wind (m/s):</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={windSpeed}
-                      onChange={(e) => setWindSpeed(e.target.value)}
-                      placeholder="Enter wind speed (+/-)"
-                    />
-                    <div className="wind-info">
-                      + for tailwind, - for headwind
-                    </div>
-                  </div>
-                )}
+                <WindAdjustment
+                  eventType={eventType}
+                  windSpeed={windSpeed}
+                  setWindSpeed={setWindSpeed}
+                  showWind={showWind}
+                  setShowWind={setShowWind}
+                  needsWindInput={needsWindInput}
+                />
 
                 <button className="calculate-button" onClick={calculate}>
                   Calculate
                 </button>
 
-                {(points || performance) && (
-                  <div className="results">
-                    <h2>Results</h2>
-                    {mode === 'points' ? (
-                      <>
-                        <p className="points">Base Points: {points}</p>
-                        {needsWindInput(eventType) && windSpeed && adjustedPoints !== points && (
-                          <p className="points">
-                            Wind Adjusted Points: {adjustedPoints}
-                            <span className="wind-adjustment-info">
-                              ({windSpeed > 0 ? '-' : '+'}{Math.abs(adjustedPoints - points)} points)
-                            </span>
-                          </p>
-                        )}
-                      </>
-                    ) : (
-                      <p className="points">{performance}</p>
-                    )}
-                  </div>
-                )}
+                <ResultsDisplay
+                  mode={mode}
+                  points={points}
+                  performance={performance}
+                  eventType={eventType}
+                  windSpeed={windSpeed}
+                  adjustedPoints={adjustedPoints}
+                />
+
               </div>
             </div>
             <div className="comparison-wrapper">

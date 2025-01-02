@@ -17,9 +17,13 @@ export const WIND_MODIFICATIONS = {
   '5.0': -18
 };
 
-export const calculateWindModification = (windSpeed, hasWindInfo = true) => {
-  if (!hasWindInfo) return -30; // NWI case
+export const needsWindInput = (eventType) => {
+  return WIND_AFFECTED_EVENTS.includes(eventType);
+};
 
+export const calculateWindModification = (eventType, windSpeed, points) => {
+  if (!needsWindInput(eventType)) return 0;
+  
   // Convert to number if string
   windSpeed = Number(windSpeed);
 
