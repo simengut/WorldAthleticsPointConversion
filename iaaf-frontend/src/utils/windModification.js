@@ -1,5 +1,10 @@
 export const WIND_AFFECTED_EVENTS = [
-  '100m', '200m', '100mH', '110mH', 'LJ', 'TJ'
+  '100m',
+  '200m',
+  '100mH',
+  '110mH',
+  'Long Jump',
+  'Triple Jump'
 ];
 
 // Points modification per wind speed (m/s)
@@ -17,7 +22,13 @@ export const WIND_MODIFICATIONS = {
   '5.0': -18
 };
 
-export const needsWindInput = (eventType) => {
+export const needsWindInput = (eventType, season) => {
+  // No wind adjustments for any indoor events
+  if (season === 'indoor') {
+    return false;
+  }
+  
+  // Only allow wind adjustments for specified outdoor events
   return WIND_AFFECTED_EVENTS.includes(eventType);
 };
 

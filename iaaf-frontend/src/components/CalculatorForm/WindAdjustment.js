@@ -1,40 +1,36 @@
 import React from 'react';
-import { calculateWindModification } from '../../utils/windModification';
 
 function WindAdjustment({ 
   eventType, 
   windSpeed, 
   setWindSpeed, 
   showWind, 
-  setShowWind, 
-  needsWindInput 
+  setShowWind 
 }) {
-  if (!needsWindInput(eventType)) return null;
-
   return (
-    <div className="wind-section">
-      <div className="wind-controls">
-        <div className="wind-toggle">
+    <div className="wind-adjustment">
+      <div className="wind-toggle">
+        <label>
           <input
             type="checkbox"
             checked={showWind}
             onChange={(e) => setShowWind(e.target.checked)}
           />
-          <label>Add wind information</label>
-        </div>
-        {showWind && (
+          Apply Wind Adjustment
+        </label>
+      </div>
+      {showWind && (
+        <div className="wind-input">
+          <label>Wind Speed (m/s):</label>
           <input
             type="number"
+            step="0.1"
             value={windSpeed}
             onChange={(e) => setWindSpeed(e.target.value)}
-            step="0.1"
-            placeholder="Enter wind speed (m/s)"
+            placeholder="Enter wind speed"
           />
-        )}
-      </div>
-      <div className="wind-info">
-        <p>Note: Positive values indicate tailwind, negative values indicate headwind.</p>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

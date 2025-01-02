@@ -1,72 +1,51 @@
-import { useState, useEffect } from 'react';
-
-const EVENT_CODES = {
-  '60m': '60m',
-  '100m': '100m',
-  '200m': '200m',
-  '400m': '400m',
-  '800m': '800m',
-  '1500m': '1500m',
-  '3000m': '3000m',
-  '5000m': '5000m',
-  '10000m': '10000m',
-  '60mH': '60mH',
-  '100mH': '100mH',
-  '110mH': '110mH',
-  '400mH': '400mH',
-  'High Jump': 'HJ',
-  'Pole Vault': 'PV',
-  'Long Jump': 'LJ',
-  'Triple Jump': 'TJ',
-  'Shot Put': 'SP',
-  'Discus Throw': 'DT',
-  'Hammer Throw': 'HT',
-  'Javelin Throw': 'JT',
-  'Decathlon': 'Decathlon',
-  'Heptathlon': 'Heptathlon',
-  'Pentathlon': 'Pentathlon'
-};
+import React, { useState, useEffect, useCallback } from 'react';
+import { EVENT_CODES } from '../utils/eventCodes';
 
 function EventComparison({ points, gender, season }) {
-  const [equivalentPerformances, setEquivalentPerformances] = useState({});
+  const [performances, setPerformances] = useState({});
 
-  // Helper function to check if an event is a combined event
-  const isCombinedEvent = (event) => {
-    return ['Decathlon', 'Heptathlon', 'Pentathlon'].includes(event);
-  };
-
-  // Helper function to format performances
-  const formatPerformance = (performance, event) => {
-    // For combined events, return the whole number without decimals
-    if (isCombinedEvent(event)) {
-      return Math.round(performance).toString();
-    }
-
-    // For track events (ending with 'm' or 'mH')
-    if (event.endsWith('m') || event.endsWith('mH')) {
-      if (['800m', '1500m', '3000m', '5000m', '10000m'].includes(event)) {
-        // Format mm:ss.xx for middle/long distance
-        const minutes = Math.floor(performance / 60);
-        const seconds = (performance % 60).toFixed(2);
-        return `${minutes}:${seconds.padStart(5, '0')}`;
-      }
-      // Format ss.xx for sprints
-      return performance.toFixed(2);
-    }
-
-    // For field events
-    return performance.toFixed(2);
-  };
-
-  // Helper function to get events by gender and season
-  const getEventsByGenderAndSeason = (events) => {
+  const getEventsByGenderAndSeason = useCallback((events) => {
     return events.filter(event => {
       if (gender === 'mens' && ['100mH', 'Pentathlon'].includes(event)) return false;
+      if (gender === 'womens' && ['110mH'].includes(event)) return false;
       if (gender === 'womens' && ['110mH', 'Decathlon', 'Heptathlon'].includes(event) && season === 'indoor') return false;
       if (season === 'indoor' && ['100m', '100mH', '110mH', '400mH', '5000m', '10000m', 'Discus Throw', 'Hammer Throw', 'Javelin Throw', 'Decathlon'].includes(event)) return false;
       return true;
     });
-  };
+  }, [gender, season]);
+
+  const calculateEquivalentPerformances = useCallback(async (events) => {
+    try {
+      const responses = await Promise.all(events.map(event => {
+        const eventType = EVENT_CODES[event] || event;
+        return fetch('http://localhost:5001/api/calculate-performance', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            event_type: eventType,
+            points: points,
+            gender: gender,
+            season: season
+          }),
+        });
+      }));
+
+      const data = await Promise.all(responses.map(async (r) => {
+        const result = await r.json();
+        return result;
+      }));
+
+      const performances = {};
+      events.forEach((event, i) => {
+        performances[event] = data[i].performance;
+      });
+      setPerformances(performances);
+    } catch (error) {
+      console.error('Error calculating equivalent performances:', error);
+    }
+  }, [points, gender, season]);
 
   useEffect(() => {
     if (points) {
@@ -86,51 +65,29 @@ function EventComparison({ points, gender, season }) {
       const filteredEvents = getEventsByGenderAndSeason(allEvents);
       calculateEquivalentPerformances(filteredEvents);
     }
-  }, [points, gender, season]);
+  }, [points, gender, season, calculateEquivalentPerformances, getEventsByGenderAndSeason]);
 
-  const calculateEquivalentPerformances = async (events) => {
-    try {
-      const responses = await Promise.all(events.map(event => {
-        // Special handling for combined events
-        const eventType = EVENT_CODES[event] || event;
-        
-        // Log the request for debugging
-        console.log('Calculating performance for:', {
-          event_type: eventType,
-          points: points,
-          gender: gender,
-          season: season
-        });
-
-        return fetch('http://localhost:5001/api/calculate-performance', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            event_type: eventType,
-            points: points,
-            gender: gender,
-            season: season
-          }),
-        });
-      }));
-
-      const data = await Promise.all(responses.map(async (r) => {
-        const result = await r.json();
-        // Log the response for debugging
-        console.log('API Response:', result);
-        return result;
-      }));
-
-      const performances = {};
-      events.forEach((event, i) => {
-        performances[event] = data[i].performance;
-      });
-      setEquivalentPerformances(performances);
-    } catch (error) {
-      console.error('Error calculating equivalent performances:', error);
+  // Helper function to format performances
+  const formatPerformance = (performance, event) => {
+    // For combined events, return the whole number without decimals
+    if (['Decathlon', 'Heptathlon', 'Pentathlon'].includes(event)) {
+      return Math.round(performance).toString();
     }
+
+    // For track events (ending with 'm' or 'mH')
+    if (event.endsWith('m') || event.endsWith('mH')) {
+      if (['800m', '1500m', '3000m', '5000m', '10000m'].includes(event)) {
+        // Format mm:ss.xx for middle/long distance
+        const minutes = Math.floor(performance / 60);
+        const seconds = (performance % 60).toFixed(2);
+        return `${minutes}:${seconds.padStart(5, '0')}`;
+      }
+      // Format ss.xx for sprints
+      return performance.toFixed(2);
+    }
+
+    // For field events
+    return performance.toFixed(2);
   };
 
   const renderEventSection = (title, events) => {
@@ -145,8 +102,8 @@ function EventComparison({ points, gender, season }) {
             {filteredEvents.map(event => (
               <tr key={event}>
                 <td>{event}</td>
-                <td>{equivalentPerformances[event] 
-                  ? formatPerformance(equivalentPerformances[event], EVENT_CODES[event] || event) 
+                <td>{performances[event] 
+                  ? formatPerformance(performances[event], EVENT_CODES[event] || event) 
                   : '-'}</td>
               </tr>
             ))}
