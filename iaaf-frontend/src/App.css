@@ -455,3 +455,47 @@ h4, h5, h6 { font-size: 10px; }
     font-size: 10px;
   }
 }
+
+.competition-page {
+  display: flex;
+  width: 100%;
+}
+
+.competition-sidebar {
+  width: 33.333%;
+  padding: 1rem;
+  background-color: var(--background-secondary);
+}
+
+.competition-main {
+  width: 66.666%;
+  padding: 1rem;
+}
+
+/* Keep existing competition table styles */
+.competition-table {
+  width: 100%;
+}
+
+.calculator-page {
+  display: flex;
+  width: 100%;
+  gap: 2rem;
+  padding: 1rem;
+}
+
+.calculator-sidebar {
+  width: 33.333%;
+}
+
+.calculator-main {
+  width: 66.666%;
+}
+
+/* New styles for the calculator form container */
+.calculator-form {
+  background-color: #6c757d;  /* Dark grey background */
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}

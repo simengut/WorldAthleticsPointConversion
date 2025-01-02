@@ -3,11 +3,13 @@ import { useState } from 'react';
 import Navbar from './components/Navbar';
 import CompetitionTable from './CompetitionTable';
 import About from './components/About';
-import EventComparison from './components/EventComparison';
-import { WIND_AFFECTED_EVENTS } from './utils/windModification';
-import WindAdjustment from './components/CalculatorForm/WindAdjustment';
 import Form from './components/CalculatorForm/Form';
-import { calculatePoints } from './utils/calculators';
+import WindAdjustment from './components/CalculatorForm/WindAdjustment';
+import ResultsDisplay from './components/CalculatorForm/ResultsDisplay';
+import EventComparison from './components/EventComparison';
+import { needsWindInput, calculateWindModification } from './utils/windModification';
+import { EVENT_CODES } from './utils/eventCodes';
+import { formatTimeInput } from './utils/formatters';
 
 function App() {
   const [activeTab, setActiveTab] = useState('calculator');
@@ -21,21 +23,72 @@ function App() {
   const [adjustedPoints, setAdjustedPoints] = useState(null);
   const [showWind, setShowWind] = useState(false);
 
-  const needsWindInput = (event) => WIND_AFFECTED_EVENTS.includes(event);
-
   const calculate = async () => {
-    const result = await calculatePoints({
-      mode,
-      performance,
-      eventType,
-      gender,
-      season,
-      windSpeed
-    });
+    try {
+      if (mode === 'points') {
+        // Performance to Points calculation
+        const formattedPerformance = formatTimeInput(performance, eventType);
+        if (['800m', '1500m', '3000m', '5000m', '10000m'].includes(eventType) && !formattedPerformance) {
+          console.error('Invalid time format');
+          return;
+        }
 
-    if (result) {
-      setPoints(result.points);
-      setAdjustedPoints(result.adjustedPoints);
+        const response = await fetch('http://localhost:5001/api/calculate-points', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            event_type: EVENT_CODES[eventType] || eventType,
+            performance: formattedPerformance || performance,
+            gender: gender,
+            season: season
+          }),
+        });
+        const data = await response.json();
+        const basePoints = Math.round(data.points);
+        setPoints(basePoints);
+
+        if (season === 'outdoor' && needsWindInput(eventType, season) && windSpeed) {
+          const windAdjustment = calculateWindModification(
+            eventType,
+            parseFloat(windSpeed),
+            basePoints
+          );
+          setAdjustedPoints(Math.round(basePoints + windAdjustment));
+        } else {
+          setAdjustedPoints(basePoints);
+        }
+      } else {
+        // Points to Performance calculation
+        const response = await fetch('http://localhost:5001/api/calculate-performance', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            event_type: EVENT_CODES[eventType] || eventType,
+            points: Number(points),
+            gender: gender,
+            season: season
+          }),
+        });
+        const data = await response.json();
+        
+        // Format the performance based on event type
+        if (['800m', '1500m', '3000m', '5000m', '10000m'].includes(eventType)) {
+          const minutes = Math.floor(data.performance / 60);
+          const seconds = (data.performance % 60).toFixed(2);
+          setPerformance(`${minutes}:${seconds.padStart(5, '0')}`);
+        } else {
+          setPerformance(data.performance.toFixed(2));
+        }
+        
+        setPoints(Number(points));
+        setAdjustedPoints(Number(points));
+      }
+    } catch (error) {
+      console.error('Error:', error);
     }
   };
 
@@ -66,8 +119,8 @@ function App() {
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
       <main className="main-content">
         {activeTab === 'calculator' ? (
-          <div className="content-container">
-            <div className="calculator-wrapper">
+          <div className="calculator-page">
+            <div className="calculator-sidebar">
               <div className="calculator-form">
                 <Form
                   mode={mode}
@@ -83,7 +136,6 @@ function App() {
                   points={points}
                   setPoints={setPoints}
                 />
-
                 {mode === 'points' && season === 'outdoor' && needsWindInput(eventType, season) && (
                   <WindAdjustment
                     eventType={eventType}
@@ -91,42 +143,26 @@ function App() {
                     setWindSpeed={setWindSpeed}
                     showWind={showWind}
                     setShowWind={setShowWind}
-                    needsWindInput={needsWindInput}
                   />
                 )}
-
                 <button className="calculate-button" onClick={calculate}>
                   Calculate
                 </button>
-
-                {(points || performance) && (
-                  <div className="results">
-                    <h2>Results</h2>
-                    {mode === 'points' ? (
-                      <>
-                        <p className="points">Base Points: {points}</p>
-                        {needsWindInput(eventType, season) && windSpeed && adjustedPoints !== points && (
-                          <p className="points">
-                            Wind Adjusted Points: {adjustedPoints}
-                            <span className="wind-adjustment-info">
-                              ({windSpeed > 0 ? '-' : '+'}{Math.abs(adjustedPoints - points)} points)
-                            </span>
-                          </p>
-                        )}
-                      </>
-                    ) : (
-                      <p className="points">{performance}</p>
-                    )}
-                  </div>
-                )}
+                <ResultsDisplay 
+                  mode={mode}
+                  points={points}
+                  performance={performance}
+                  eventType={eventType}
+                  windSpeed={windSpeed}
+                  adjustedPoints={adjustedPoints}
+                />
               </div>
             </div>
-
-            <div className="comparison-wrapper">
+            <div className="calculator-main">
               <EventComparison 
-                points={adjustedPoints || points}
-                gender={gender}
-                season={season}
+                points={adjustedPoints || points} 
+                gender={gender} 
+                season={season} 
               />
             </div>
           </div>
