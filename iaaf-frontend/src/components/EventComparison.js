@@ -1,89 +1,136 @@
 import { useState, useEffect } from 'react';
 
+const EVENT_CODES = {
+  '60m': '60m',
+  '100m': '100m',
+  '200m': '200m',
+  '400m': '400m',
+  '800m': '800m',
+  '1500m': '1500m',
+  '3000m': '3000m',
+  '5000m': '5000m',
+  '10000m': '10000m',
+  '60mH': '60mH',
+  '100mH': '100mH',
+  '110mH': '110mH',
+  '400mH': '400mH',
+  'High Jump': 'HJ',
+  'Pole Vault': 'PV',
+  'Long Jump': 'LJ',
+  'Triple Jump': 'TJ',
+  'Shot Put': 'SP',
+  'Discus Throw': 'DT',
+  'Hammer Throw': 'HT',
+  'Javelin Throw': 'JT',
+  'Decathlon': 'Decathlon',
+  'Heptathlon': 'Heptathlon',
+  'Pentathlon': 'Pentathlon'
+};
+
 function EventComparison({ points, gender, season }) {
   const [equivalentPerformances, setEquivalentPerformances] = useState({});
 
+  // Helper function to check if an event is a combined event
+  const isCombinedEvent = (event) => {
+    return ['Decathlon', 'Heptathlon', 'Pentathlon'].includes(event);
+  };
+
   // Helper function to format performances
   const formatPerformance = (performance, event) => {
-    if (['800m', '1500m', '3000m', '5000m', '10000m', '3000mSC'].includes(event)) {
-      const timeInSeconds = parseFloat(performance);
-      const minutes = Math.floor(timeInSeconds / 60);
-      const seconds = (timeInSeconds % 60).toFixed(2);
-      return `${minutes}:${seconds.padStart(5, '0')}`;
+    // For combined events, return the whole number without decimals
+    if (isCombinedEvent(event)) {
+      return Math.round(performance).toString();
     }
-    else if (['50m', '60m', '100m', '200m', '400m', '60mH', '100mH', '110mH', '400mH'].includes(event)) {
-      return parseFloat(performance).toFixed(2);
+
+    // For track events (ending with 'm' or 'mH')
+    if (event.endsWith('m') || event.endsWith('mH')) {
+      if (['800m', '1500m', '3000m', '5000m', '10000m'].includes(event)) {
+        // Format mm:ss.xx for middle/long distance
+        const minutes = Math.floor(performance / 60);
+        const seconds = (performance % 60).toFixed(2);
+        return `${minutes}:${seconds.padStart(5, '0')}`;
+      }
+      // Format ss.xx for sprints
+      return performance.toFixed(2);
     }
-    else {
-      return parseFloat(performance).toFixed(2);
-    }
+
+    // For field events
+    return performance.toFixed(2);
   };
 
   // Helper function to get events by gender and season
   const getEventsByGenderAndSeason = (events) => {
-    const MENS_ONLY = ['110mH'];
-    const WOMENS_ONLY = ['100mH'];
-    const OUTDOOR_ONLY = ['100m', '200m', '100mH', '110mH', 'DT', 'HT', 'JT'];
-    const INDOOR_ONLY = ['50m', '60m'];
-
     return events.filter(event => {
-      // Filter by gender
-      if (gender === 'mens' && WOMENS_ONLY.includes(event)) return false;
-      if (gender === 'womens' && MENS_ONLY.includes(event)) return false;
-
-      // Filter by season
-      if (season === 'indoor' && OUTDOOR_ONLY.includes(event)) return false;
-      if (season === 'outdoor' && INDOOR_ONLY.includes(event)) return false;
-
+      if (gender === 'mens' && ['100mH', 'Pentathlon'].includes(event)) return false;
+      if (gender === 'womens' && ['110mH', 'Decathlon', 'Heptathlon'].includes(event) && season === 'indoor') return false;
+      if (season === 'indoor' && ['100m', '100mH', '110mH', '400mH', '5000m', '10000m', 'Discus Throw', 'Hammer Throw', 'Javelin Throw', 'Decathlon'].includes(event)) return false;
       return true;
     });
   };
 
   useEffect(() => {
     if (points) {
-      calculateEquivalentPerformances();
+      const allEvents = [
+        ...(season === 'indoor' ? ['60m', '200m', '400m', '60mH'] : ['100m', '200m', '400m', '100mH', '110mH', '400mH']),
+        '800m', '1500m', '3000m',
+        ...(season === 'outdoor' ? ['5000m', '10000m'] : []),
+        'High Jump', 'Pole Vault', 'Long Jump', 'Triple Jump',
+        'Shot Put',
+        ...(season === 'outdoor' ? ['Discus Throw', 'Hammer Throw', 'Javelin Throw'] : []),
+        ...(season === 'outdoor' ? 
+          [(gender === 'mens' ? 'Decathlon' : 'Heptathlon')] : 
+          [(gender === 'mens' ? 'Heptathlon' : 'Pentathlon')]
+        )
+      ];
+      
+      const filteredEvents = getEventsByGenderAndSeason(allEvents);
+      calculateEquivalentPerformances(filteredEvents);
     }
   }, [points, gender, season]);
 
-  const calculateEquivalentPerformances = async () => {
-    const events = [
-      // Track Events
-      '100m', '200m', '400m', '800m', '1500m', '3000m', '5000m', '10000m',
-      // Hurdles
-      '100mH', '110mH', '400mH', '3000mSC',
-      // Jumps
-      'HJ', 'PV', 'LJ', 'TJ',
-      // Throws
-      'SP', 'DT', 'HT', 'JT'
-    ];
+  const calculateEquivalentPerformances = async (events) => {
+    try {
+      const responses = await Promise.all(events.map(event => {
+        // Special handling for combined events
+        const eventType = EVENT_CODES[event] || event;
+        
+        // Log the request for debugging
+        console.log('Calculating performance for:', {
+          event_type: eventType,
+          points: points,
+          gender: gender,
+          season: season
+        });
 
-    const performances = {};
-    
-    const filteredEvents = getEventsByGenderAndSeason(events);
-    
-    for (const event of filteredEvents) {
-      try {
-        const response = await fetch('http://localhost:5001/api/calculate-performance', {
+        return fetch('http://localhost:5001/api/calculate-performance', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            event_type: event,
+            event_type: eventType,
             points: points,
             gender: gender,
             season: season
           }),
         });
-        const data = await response.json();
-        performances[event] = data.performance;
-      } catch (error) {
-        console.error(`Error calculating performance for ${event}:`, error);
-        performances[event] = 'N/A';
-      }
+      }));
+
+      const data = await Promise.all(responses.map(async (r) => {
+        const result = await r.json();
+        // Log the response for debugging
+        console.log('API Response:', result);
+        return result;
+      }));
+
+      const performances = {};
+      events.forEach((event, i) => {
+        performances[event] = data[i].performance;
+      });
+      setEquivalentPerformances(performances);
+    } catch (error) {
+      console.error('Error calculating equivalent performances:', error);
     }
-    
-    setEquivalentPerformances(performances);
   };
 
   const renderEventSection = (title, events) => {
@@ -99,7 +146,7 @@ function EventComparison({ points, gender, season }) {
               <tr key={event}>
                 <td>{event}</td>
                 <td>{equivalentPerformances[event] 
-                  ? formatPerformance(equivalentPerformances[event], event) 
+                  ? formatPerformance(equivalentPerformances[event], EVENT_CODES[event] || event) 
                   : '-'}</td>
               </tr>
             ))}
@@ -122,16 +169,23 @@ function EventComparison({ points, gender, season }) {
       <h2>Equivalent Performances</h2>
       {renderEventSection('Sprints & Hurdles', 
         season === 'indoor' 
-          ? ['50m', '60m', '200m', '400m', '60mH', '400mH']
+          ? ['60m', '200m', '400m', '60mH']
           : ['100m', '200m', '400m', '100mH', '110mH', '400mH']
       )}
       {renderEventSection('Middle Distance', ['800m', '1500m', '3000m'])}
       {season === 'outdoor' && renderEventSection('Long Distance', ['5000m', '10000m'])}
-      {renderEventSection('Jumps', ['HJ', 'PV', 'LJ', 'TJ'])}
+      {renderEventSection('Jumps', [
+        'High Jump', 'Pole Vault', 'Long Jump', 'Triple Jump'
+      ])}
       {renderEventSection('Throws', 
         season === 'indoor' 
-          ? ['SP']
-          : ['SP', 'DT', 'HT', 'JT']
+          ? ['Shot Put']
+          : ['Shot Put', 'Discus Throw', 'Hammer Throw', 'Javelin Throw']
+      )}
+      {renderEventSection('Combined Events',
+        season === 'outdoor'
+          ? (gender === 'mens' ? ['Decathlon'] : ['Heptathlon'])
+          : (gender === 'mens' ? ['Heptathlon'] : ['Pentathlon'])
       )}
     </div>
   );

@@ -19,9 +19,32 @@ function App() {
 
   const needsWindInput = (event) => WIND_AFFECTED_EVENTS.includes(event);
 
+  const formatTimeInput = (input, event) => {
+    if (['800m', '1500m', '3000m', '5000m', '10000m'].includes(event)) {
+      // Convert mm:ss.xx format to seconds for API
+      const parts = input.split(':');
+      if (parts.length === 2) {
+        const minutes = parseInt(parts[0]);
+        const seconds = parseFloat(parts[1]);
+        if (!isNaN(minutes) && !isNaN(seconds)) {
+          return (minutes * 60 + seconds).toFixed(2);
+        }
+      }
+      return null;
+    }
+    return input;
+  };
+
   const calculate = async () => {
     try {
       if (mode === 'points') {
+        // Format the performance input if it's a middle/long distance event
+        const formattedPerformance = formatTimeInput(performance, eventType);
+        if (['800m', '1500m', '3000m', '5000m', '10000m'].includes(eventType) && !formattedPerformance) {
+          console.error('Invalid time format');
+          return;
+        }
+
         const response = await fetch('http://localhost:5001/api/calculate-points', {
           method: 'POST',
           headers: {
@@ -29,7 +52,7 @@ function App() {
           },
           body: JSON.stringify({
             event_type: eventType,
-            performance: performance,
+            performance: formattedPerformance || performance,
             gender: gender,
             season: season
           }),
@@ -109,31 +132,16 @@ function App() {
   };
 
   const getPlaceholderText = (eventType) => {
-    // Sprint events (time format with decimals)
-    if (['100m', '200m', '400m', '100mH', '110mH', '400mH'].includes(eventType)) {
-      return `Enter ${eventType} result (ss.xx)`;
-    }
-    // Distance events (time format with minutes)
-    else if (['800m', '1500m', '3000m', '5000m', '10000m', '3000mSC'].includes(eventType)) {
-      return `Enter ${eventType} result (mm:ss.xx)`;
-    }
-    // Horizontal jumps (distance format)
-    else if (['LJ', 'TJ'].includes(eventType)) {
-      return `Enter ${eventType === 'LJ' ? 'Long Jump' : 'Triple Jump'} result (m.cm)`;
-    }
-    // Vertical jumps (height format)
-    else if (['HJ', 'PV'].includes(eventType)) {
-      return `Enter ${eventType === 'HJ' ? 'High Jump' : 'Pole Vault'} result (m.cm)`;
-    }
-    // Throws (distance format)
-    else if (['SP', 'DT', 'HT', 'JT'].includes(eventType)) {
-      const eventNames = {
-        'SP': 'Shot Put',
-        'DT': 'Discus',
-        'HT': 'Hammer',
-        'JT': 'Javelin'
-      };
-      return `Enter ${eventNames[eventType]} result (m.cm)`;
+    if (['100m', '200m', '400m', '60m', '100mH', '110mH', '400mH', '60mH'].includes(eventType)) {
+      return `Enter ${eventType} time (ss.xx)`;
+    } else if (['800m', '1500m', '3000m', '5000m', '10000m'].includes(eventType)) {
+      return `Enter ${eventType} time (mm:ss.xx)`;
+    } else if (['Long Jump', 'Triple Jump'].includes(eventType)) {
+      return `Enter ${eventType} distance (m.cm)`;
+    } else if (['High Jump', 'Pole Vault'].includes(eventType)) {
+      return `Enter ${eventType} height (m.cm)`;
+    } else if (['Shot Put', 'Discus Throw', 'Hammer Throw', 'Javelin Throw'].includes(eventType)) {
+      return `Enter ${eventType} distance (m.cm)`;
     }
     return 'Enter performance';
   };
@@ -228,11 +236,9 @@ function App() {
                       }
                     }}
                   >
-                    {/* Track Events */}
                     <optgroup label="Track Events">
                       {season === 'indoor' ? (
                         <>
-                          <option value="50m">50m</option>
                           <option value="60m">60m</option>
                           <option value="200m">200m</option>
                           <option value="400m">400m</option>
@@ -253,42 +259,52 @@ function App() {
                         </>
                       )}
                     </optgroup>
-
-                    {/* Hurdles */}
                     <optgroup label="Hurdles">
                       {season === 'indoor' ? (
-                        <option value="60mH">60m Hurdles</option>
+                        <option value="60mH">60mH</option>
                       ) : (
                         <>
                           {gender === 'mens' ? (
-                            <option value="110mH">110m Hurdles</option>
+                            <option value="110mH">110mH</option>
                           ) : (
-                            <option value="100mH">100m Hurdles</option>
+                            <option value="100mH">100mH</option>
                           )}
-                          <option value="400mH">400m Hurdles</option>
-                          <option value="3000mSC">3000m Steeplechase</option>
+                          <option value="400mH">400mH</option>
                         </>
                       )}
                     </optgroup>
-
-                    {/* Jumps */}
                     <optgroup label="Jumps">
-                      <option value="HJ">High Jump</option>
-                      <option value="PV">Pole Vault</option>
-                      <option value="LJ">Long Jump</option>
-                      <option value="TJ">Triple Jump</option>
+                      <option value="High Jump">High Jump</option>
+                      <option value="Pole Vault">Pole Vault</option>
+                      <option value="Long Jump">Long Jump</option>
+                      <option value="Triple Jump">Triple Jump</option>
                     </optgroup>
-
-                    {/* Throws */}
                     <optgroup label="Throws">
+                      <option value="Shot Put">Shot Put</option>
+                      {season === 'outdoor' && (
+                        <>
+                          <option value="Discus Throw">Discus Throw</option>
+                          <option value="Hammer Throw">Hammer Throw</option>
+                          <option value="Javelin Throw">Javelin Throw</option>
+                        </>
+                      )}
+                    </optgroup>
+                    <optgroup label="Combined Events">
                       {season === 'indoor' ? (
-                        <option value="SP">Shot Put</option>
+                        <>
+                          {gender === 'mens' ? (
+                            <option value="Heptathlon">Heptathlon</option>
+                          ) : (
+                            <option value="Pentathlon">Pentathlon</option>
+                          )}
+                        </>
                       ) : (
                         <>
-                          <option value="SP">Shot Put</option>
-                          <option value="DT">Discus</option>
-                          <option value="HT">Hammer</option>
-                          <option value="JT">Javelin</option>
+                          {gender === 'mens' ? (
+                            <option value="Decathlon">Decathlon</option>
+                          ) : (
+                            <option value="Heptathlon">Heptathlon</option>
+                          )}
                         </>
                       )}
                     </optgroup>
@@ -299,15 +315,11 @@ function App() {
                   <label>{mode === 'points' ? 'Result:' : 'Points:'}</label>
                   <input
                     type="text"
-                    value={mode === 'points' ? performance : points || ''}
-                    onChange={(e) => {
-                      if (mode === 'points') {
-                        setPerformance(e.target.value);
-                      } else {
-                        setPoints(e.target.value);
-                      }
-                    }}
-                    placeholder={mode === 'points' ? getPlaceholderText(eventType) : 'Enter points'}
+                    value={performance}
+                    onChange={(e) => setPerformance(e.target.value)}
+                    placeholder={getPlaceholderText(eventType)}
+                    pattern={['800m', '1500m', '3000m', '5000m', '10000m'].includes(eventType) ? 
+                      "^[0-9]{1,2}:[0-5][0-9].[0-9]{2}$" : undefined}
                   />
                 </div>
 
