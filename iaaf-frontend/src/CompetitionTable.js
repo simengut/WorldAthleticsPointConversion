@@ -1,65 +1,52 @@
 import { useState, useEffect } from 'react';
 import { formatPerformance } from './utils/formatters';
 import { COMPETITION_POINTS, MEET_LABELS } from './utils/competitionPoints';
+import { EVENT_CODES } from './utils/eventCodes';
 
 // New Row component to handle the API calls
 function TableRow({ place, targetTotal, eventType, gender, season, baseMeet, basePlace }) {
   const [performances, setPerformances] = useState({});
 
-  const calculateRequiredPerformance = async (requiredPoints) => {
-    try {
-      const response = await fetch('http://localhost:5001/api/calculate-performance', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          event_type: eventType,
-          points: requiredPoints,
-          gender: gender,
-          season: season
-        }),
-      });
-      const data = await response.json();
-      return data.performance;
-    } catch (error) {
-      console.error('Error:', error);
-      return null;
-    }
-  };
-
   useEffect(() => {
     const fetchPerformances = async () => {
       if (targetTotal) {
-        for (const meet of Object.keys(MEET_LABELS)) {
-          if (COMPETITION_POINTS[meet][place]) {
-            const placePoints = COMPETITION_POINTS[meet][place];
-            const requiredBase = targetTotal - placePoints;
-            
-            const performance = await calculateRequiredPerformance(requiredBase);
-            if (performance) {
-              setPerformances(prev => ({
-                ...prev,
-                [meet]: formatPerformance(performance, eventType)
-              }));
-            }
+        try {
+          const response = await fetch('http://localhost:5001/api/calculate-performances-batch', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              base_points: targetTotal,
+              event_type: eventType,
+              gender: gender,
+              season: season
+            }),
+          });
+          
+          const data = await response.json();
+          if (data.performances) {
+            setPerformances(data.performances);
           }
+        } catch (error) {
+          console.error('Error:', error);
         }
       } else {
-        // Clear performances when targetTotal is null
         setPerformances({});
       }
     };
 
     fetchPerformances();
-  }, [targetTotal, place, eventType, gender, season, baseMeet, basePlace]);
+  }, [targetTotal, eventType, gender, season]);
 
   return (
     <tr>
       <td>{place}</td>
       {Object.keys(MEET_LABELS).map(meet => (
         <td key={meet}>
-          {COMPETITION_POINTS[meet][place] ? performances[meet] || '-' : '-'}
+          {COMPETITION_POINTS[meet][place] ? 
+            formatPerformance(performances[meet]?.[place], eventType) || '-' 
+            : '-'}
         </td>
       ))}
     </tr>
@@ -70,6 +57,77 @@ function TableRow({ place, targetTotal, eventType, gender, season, baseMeet, bas
 function CompetitionTable({ points, eventType, gender, season }) {
   const [baseMeet, setBaseMeet] = useState('');
   const [basePlace, setBasePlace] = useState('');
+  const [performances, setPerformances] = useState({});
+
+  // Helper function to determine if it's a field event
+  const isFieldEvent = (event) => {
+    return [
+      'High Jump', 'Pole Vault', 'Long Jump', 'Triple Jump',
+      'Shot Put', 'Discus Throw', 'Hammer Throw', 'Javelin Throw'
+    ].includes(event);
+  };
+
+  useEffect(() => {
+    const fetchPerformances = async () => {
+      if (points && baseMeet && basePlace) {
+        const basePerformancePoints = Number(points) + COMPETITION_POINTS[baseMeet][basePlace];
+        console.log('Base performance points:', basePerformancePoints);
+        
+        try {
+          const results = {};
+          for (const meet of Object.keys(MEET_LABELS)) {
+            results[meet] = {};
+            for (const [place, bonus] of Object.entries(COMPETITION_POINTS[meet])) {
+              const targetPoints = isFieldEvent(eventType) 
+                ? basePerformancePoints + bonus 
+                : basePerformancePoints - bonus;
+              
+              try {
+                const response = await fetch('http://localhost:5001/api/calculate-performance', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    event_type: EVENT_CODES[eventType] || eventType,
+                    points: targetPoints,
+                    gender: gender,
+                    season: season
+                  }),
+                });
+                
+                const data = await response.json();
+                results[meet][place] = data.performance;
+              } catch (error) {
+                console.error(`Error calculating for ${meet} place ${place}:`, error);
+                results[meet][place] = null;
+              }
+            }
+          }
+          
+          const formattedPerformances = {};
+          Object.entries(results).forEach(([meet, meetData]) => {
+            formattedPerformances[meet] = {};
+            Object.entries(meetData).forEach(([place, perf]) => {
+              if (perf !== null) {
+                formattedPerformances[meet][place] = formatPerformance(perf, eventType);
+              } else {
+                formattedPerformances[meet][place] = '-';
+              }
+            });
+          });
+          
+          setPerformances(formattedPerformances);
+        } catch (error) {
+          console.error('Error:', error);
+        }
+      } else {
+        setPerformances({});
+      }
+    };
+
+    fetchPerformances();
+  }, [points, eventType, gender, season, baseMeet, basePlace]);
 
   return (
     <div className="competition-table">
@@ -120,20 +178,17 @@ function CompetitionTable({ points, eventType, gender, season }) {
             <tbody>
               {[...Array(16)].map((_, index) => {
                 const place = index + 1;
-                const targetTotal = points && baseMeet && basePlace ? 
-                  Number(points) + COMPETITION_POINTS[baseMeet][basePlace] : null;
-                
                 return (
-                  <TableRow
-                    key={place}
-                    place={place}
-                    targetTotal={targetTotal}
-                    eventType={eventType}
-                    gender={gender}
-                    season={season}
-                    baseMeet={baseMeet}
-                    basePlace={basePlace}
-                  />
+                  <tr key={place}>
+                    <td>{place}</td>
+                    {Object.keys(MEET_LABELS).map(meet => (
+                      <td key={meet}>
+                        {COMPETITION_POINTS[meet][place] ? 
+                          (performances[meet]?.[place] || '-') : 
+                          '-'}
+                      </td>
+                    ))}
+                  </tr>
                 );
               })}
             </tbody>
