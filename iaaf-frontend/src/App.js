@@ -52,7 +52,7 @@ function App() {
   const calculate = async () => {
     try {
       if (mode === 'points') {
-        // Format the performance input if it's a middle/long distance event
+        // Performance to Points calculation
         const formattedPerformance = formatTimeInput(performance, eventType);
         if (['800m', '1500m', '3000m', '5000m', '10000m'].includes(eventType) && !formattedPerformance) {
           console.error('Invalid time format');
@@ -65,7 +65,7 @@ function App() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            event_type: eventType,
+            event_type: EVENT_CODES[eventType] || eventType, // Use code for field events
             performance: formattedPerformance || performance,
             gender: gender,
             season: season
