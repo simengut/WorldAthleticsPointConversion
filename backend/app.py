@@ -101,7 +101,7 @@ def performances_batch_endpoint():
             for place, bonus in COMPETITION_POINTS[meet].items():
                 try:
                     # Calculate the required points for this position
-                    required_points = base_points + bonus
+                    required_points = base_points - bonus
                     
                     # Try to calculate performance
                     try:

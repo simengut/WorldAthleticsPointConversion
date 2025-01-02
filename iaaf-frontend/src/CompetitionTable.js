@@ -78,10 +78,7 @@ function CompetitionTable({ points, eventType, gender, season }) {
           for (const meet of Object.keys(MEET_LABELS)) {
             results[meet] = {};
             for (const [place, bonus] of Object.entries(COMPETITION_POINTS[meet])) {
-              const targetPoints = isFieldEvent(eventType) 
-                ? basePerformancePoints + bonus 
-                : basePerformancePoints - bonus;
-              
+              const targetPoints = basePerformancePoints - bonus;
               try {
                 const response = await fetch('http://localhost:5001/api/calculate-performance', {
                   method: 'POST',
