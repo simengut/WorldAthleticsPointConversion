@@ -468,7 +468,7 @@ h4, h5, h6 { font-size: 10px; }
 }
 
 .competition-main {
-  width: 66.666%;
+  width: 100%;
   padding: 1rem;
 }
 
@@ -498,4 +498,33 @@ h4, h5, h6 { font-size: 10px; }
   padding: 1.5rem;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Container styles */
+.competition-table,
+.event-comparison {
+  width: 100%;
+  max-width: 100%;
+  padding: 1.5rem;
+  background: rgba(30, 41, 59, 0.5);
+  border-radius: 8px;
+  margin: 0 auto; /* Center the container */
+  box-sizing: border-box; /* Include padding in width calculation */
+}
+
+/* Ensure tables fill width but don't overflow */
+.competition-table table,
+.event-comparison table {
+  width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+  overflow-x: auto; /* Add horizontal scroll if needed */
+}
+
+/* Add consistent padding to table cells */
+.competition-table td,
+.competition-table th,
+.event-comparison td,
+.event-comparison th {
+  padding: 0.5rem;
 }

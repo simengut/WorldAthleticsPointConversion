@@ -1,4 +1,9 @@
 import { useState, useEffect } from 'react';
+import Form from './components/CalculatorForm/Form';
+import WindAdjustment from './components/CalculatorForm/WindAdjustment';
+import ResultsDisplay from './components/CalculatorForm/ResultsDisplay';
+import { needsWindInput, calculateWindModification } from './utils/windModification';
+
 
 const COMPETITION_POINTS = {
   OW: { // Olympic/World Championships
@@ -50,10 +55,30 @@ const MEET_LABELS = {
   F: "Category F"
 };
 
-function CompetitionTable({ points, eventType, onCalculatePerformance }) {
+function CompetitionTable({ 
+  points, 
+  eventType, 
+  onCalculatePerformance,
+  mode,
+  setMode,
+  gender,
+  setGender,
+  season,
+  setSeason,
+  setEventType,
+  performance,
+  setPerformance,
+  setPoints,
+  windSpeed,
+  setWindSpeed,
+  showWind,
+  setShowWind,
+  adjustedPoints,
+  calculate
+}) {
+  const [basePoints, setBasePoints] = useState('');
   const [baseMeet, setBaseMeet] = useState('');
   const [basePlace, setBasePlace] = useState('');
-  const [basePoints, setBasePoints] = useState(points || 0);
   const [equivalentPerformances, setEquivalentPerformances] = useState(null);
 
   // Calculate actual performance points (removing competition bonus)
@@ -101,9 +126,6 @@ function CompetitionTable({ points, eventType, onCalculatePerformance }) {
 
   return (
     <div className="competition-page">
-      <div className="competition-sidebar">
-        {/* Left side content (1/3) */}
-      </div>
       <div className="competition-main">
         <div className="competition-table">
           <div className="baseline-settings">
