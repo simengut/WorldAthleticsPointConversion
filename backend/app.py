@@ -2,6 +2,8 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from calculator import calculate_points, calculate_performance, field_events, thons
 
+
+
 app = Flask(__name__)
 CORS(app)
 
@@ -122,5 +124,8 @@ def performances_batch_endpoint():
         print(f"Error in batch endpoint: {e}")
         return jsonify({"error": str(e)}), 400
 
+
 if __name__ == "__main__":
-    app.run(port=5001, debug=True)
+    import os
+    port = int(os.environ.get('PORT', 5001))
+    app.run(host='0.0.0.0', port=port, debug=True)
