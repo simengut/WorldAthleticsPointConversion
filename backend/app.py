@@ -125,6 +125,11 @@ def performances_batch_endpoint():
         return jsonify({"error": str(e)}), 400
 
 
+@app.route("/")
+def home():
+    return jsonify({"message": "Welcome to the World Athletics Point Conversion API!"})
+
+
 if __name__ == "__main__":
     import os
     port = int(os.environ.get('PORT', 5001))
