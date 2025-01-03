@@ -13,7 +13,7 @@ function Form({
   performance,
   setPerformance,
   points,
-  setPoints
+  setPoints,
 }) {
   return (
     <>

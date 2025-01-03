@@ -26,26 +26,26 @@ function ResultsDisplay({
     
     return formatPerformance(Number(performance), eventType);
   };
-
   return (
     <div className="results">
-      <h2>Results</h2>
       {mode === 'points' ? (
         <>
-          <p className="points">Base Points: {points}</p>
-          {needsWindInput(eventType) && windSpeed && adjustedPoints !== points && (
-            <p className="points">
-              Wind Adjusted Points: {adjustedPoints}
-              <span className="wind-adjustment-info">
-                ({windSpeed > 0 ? '-' : '+'}{Math.abs(adjustedPoints - points)} points)
-              </span>
-            </p>
+          {needsWindInput(eventType) && windSpeed && adjustedPoints !== points ? (
+            <>
+              <p className="points">Base Points: {points}</p>
+              <p className="points">
+                Wind Adjusted Points: {adjustedPoints}
+                <span className="wind-adjustment-info">
+                  ({windSpeed > 0 ? '-' : '+'}{Math.abs(adjustedPoints - points)} points)
+                </span>
+              </p>
+            </>
+          ) : (
+            <p className="points">Points: {points}</p>
           )}
         </>
       ) : (
-        <p className="points">
-            {formatResult()}
-        </p>
+        <p className="points">Result: {formatResult()}</p>
       )}
     </div>
   );

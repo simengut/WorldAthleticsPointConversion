@@ -101,6 +101,13 @@ function About() {
             standards.
           </p>
         </section>
+
+        <section className="about-section author-section">
+          <h2>The Author</h2>
+          <p>
+            This calculator was developed by Simen Guttormsen, a Norwegian pole vaulter and master's student at Duke University. All questions or suggested improvements can be directed to <a href="mailto:simen.guttormsen@gmail.com">simen.guttormsen@gmail.com</a>.
+          </p>
+        </section>
       </div>
     </div>
   );

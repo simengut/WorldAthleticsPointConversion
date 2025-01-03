@@ -48,7 +48,7 @@ function App() {
         const basePoints = Math.round(data.points);
         setPoints(basePoints);
 
-        if (season === 'outdoor' && needsWindInput(eventType, season) && windSpeed) {
+        if (showWind && season === 'outdoor' && needsWindInput(eventType) && windSpeed) {
           const windAdjustment = calculateWindModification(
             eventType,
             parseFloat(windSpeed),
@@ -139,7 +139,7 @@ function App() {
             </div>
             <div className="calculator-main">
               <EventComparison 
-                points={adjustedPoints || points} 
+                points={showWind ? adjustedPoints : points}
                 gender={gender} 
                 season={season} 
               />
@@ -152,9 +152,10 @@ function App() {
             </div>
             <div className="competition-main">
               <CompetitionTable 
-                points={adjustedPoints || points}
+                points={showWind ? adjustedPoints : points}
                 eventType={eventType}
-                onCalculatePerformance={calculate}
+                gender={gender}
+                season={season}
               />
             </div>
           </div>

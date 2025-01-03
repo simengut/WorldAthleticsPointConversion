@@ -4,54 +4,54 @@ import { COMPETITION_POINTS, MEET_LABELS } from './utils/competitionPoints';
 import { EVENT_CODES } from './utils/eventCodes';
 
 // New Row component to handle the API calls
-function TableRow({ place, targetTotal, eventType, gender, season, baseMeet, basePlace }) {
-  const [performances, setPerformances] = useState({});
-
-  useEffect(() => {
-    const fetchPerformances = async () => {
-      if (targetTotal) {
-        try {
-          const response = await fetch('http://localhost:5001/api/calculate-performances-batch', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              base_points: targetTotal,
-              event_type: eventType,
-              gender: gender,
-              season: season
-            }),
-          });
-          
-          const data = await response.json();
-          if (data.performances) {
-            setPerformances(data.performances);
-          }
-        } catch (error) {
-          console.error('Error:', error);
-        }
-      } else {
-        setPerformances({});
-      }
-    };
-
-    fetchPerformances();
-  }, [targetTotal, eventType, gender, season]);
-
-  return (
-    <tr>
-      <td>{place}</td>
-      {Object.keys(MEET_LABELS).map(meet => (
-        <td key={meet}>
-          {COMPETITION_POINTS[meet][place] ? 
-            formatPerformance(performances[meet]?.[place], eventType) || '-' 
-            : '-'}
-        </td>
-      ))}
-    </tr>
-  );
-}
+// function TableRow({ place, targetTotal, eventType, gender, season, baseMeet, basePlace }) {
+//   const [performances, setPerformances] = useState({});
+//
+//   useEffect(() => {
+//     const fetchPerformances = async () => {
+//       if (targetTotal) {
+//         try {
+//           const response = await fetch('http://localhost:5001/api/calculate-performances-batch', {
+//             method: 'POST',
+//             headers: {
+//               'Content-Type': 'application/json',
+//             },
+//             body: JSON.stringify({
+//               base_points: targetTotal,
+//               event_type: eventType,
+//               gender: gender,
+//               season: season
+//             }),
+//           });
+//           
+//           const data = await response.json();
+//           if (data.performances) {
+//             setPerformances(data.performances);
+//           }
+//         } catch (error) {
+//           console.error('Error:', error);
+//         }
+//       } else {
+//         setPerformances({});
+//       }
+//     };
+//
+//     fetchPerformances();
+//   }, [targetTotal, eventType, gender, season]);
+//
+//   return (
+//     <tr>
+//       <td>{place}</td>
+//       {Object.keys(MEET_LABELS).map(meet => (
+//         <td key={meet}>
+//           {COMPETITION_POINTS[meet][place] ? 
+//             formatPerformance(performances[meet]?.[place], eventType) || '-' 
+//             : '-'}
+//         </td>
+//       ))}
+//     </tr>
+//   );
+// }
 
 // Helper function to get the last scoring place for a meet
 const getLastScoringPlace = (meet) => {
@@ -80,6 +80,12 @@ function CompetitionTable({ points, eventType, gender, season }) {
         
         for (const place of Object.keys(COMPETITION_POINTS[meet])) {
           const targetPoints = basePoints - COMPETITION_POINTS[meet][place];
+          
+          // Check if target points exceed maximum possible points
+          if (targetPoints > 1400) {
+            newPerformances[meet][place] = 'NaN';
+            continue;
+          }
           
           if (targetPoints > 0) {
             try {
@@ -184,9 +190,12 @@ function CompetitionTable({ points, eventType, gender, season }) {
                     <td>{place}</td>
                     {Object.keys(MEET_LABELS).map(meet => (
                       <td key={meet}>
-                        {performances[meet]?.[place] ? 
-                          formatPerformance(performances[meet][place], eventType) : 
-                          '-'}
+                        {performances[meet]?.[place] === 'NaN' ? 
+                          'NaN' : 
+                          (performances[meet]?.[place] ? 
+                            formatPerformance(performances[meet][place], eventType) : 
+                            '-'
+                          )}
                       </td>
                     ))}
                   </tr>
