@@ -59,77 +59,63 @@ function CompetitionTable({ points, eventType, gender, season }) {
   const [basePlace, setBasePlace] = useState('');
   const [performances, setPerformances] = useState({});
 
-  // Helper function to determine if it's a field event
-  const isFieldEvent = (event) => {
-    return [
-      'High Jump', 'Pole Vault', 'Long Jump', 'Triple Jump',
-      'Shot Put', 'Discus Throw', 'Hammer Throw', 'Javelin Throw'
-    ].includes(event);
-  };
-
+  // Calculate equivalent performances when points or base selections change
   useEffect(() => {
-    const fetchPerformances = async () => {
-      if (points && baseMeet && basePlace) {
-        const basePerformancePoints = Number(points) + COMPETITION_POINTS[baseMeet][basePlace];
-        console.log('Base performance points:', basePerformancePoints);
+    const calculateEquivalentPerformances = async () => {
+      if (!points) return;
+
+      const basePoints = baseMeet && basePlace ? 
+        points + COMPETITION_POINTS[baseMeet][basePlace] : 
+        points;
+
+      const newPerformances = {};
+      
+      for (const meet of Object.keys(MEET_LABELS)) {
+        newPerformances[meet] = {};
         
-        try {
-          const results = {};
-          for (const meet of Object.keys(MEET_LABELS)) {
-            results[meet] = {};
-            for (const [place, bonus] of Object.entries(COMPETITION_POINTS[meet])) {
-              const targetPoints = basePerformancePoints - bonus;
-              try {
-                const response = await fetch('http://localhost:5001/api/calculate-performance', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                    event_type: EVENT_CODES[eventType] || eventType,
-                    points: targetPoints,
-                    gender: gender,
-                    season: season
-                  }),
-                });
-                
-                const data = await response.json();
-                results[meet][place] = data.performance;
-              } catch (error) {
-                console.error(`Error calculating for ${meet} place ${place}:`, error);
-                results[meet][place] = null;
-              }
+        for (const place of Object.keys(COMPETITION_POINTS[meet])) {
+          const targetPoints = basePoints - COMPETITION_POINTS[meet][place];
+          
+          if (targetPoints > 0) {
+            try {
+              const response = await fetch('http://localhost:5001/api/calculate-performance', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  event_type: EVENT_CODES[eventType] || eventType,
+                  points: targetPoints,
+                  gender: gender,
+                  season: season
+                }),
+              });
+              
+              const data = await response.json();
+              newPerformances[meet][place] = data.performance;
+            } catch (error) {
+              console.error('Error calculating performance:', error);
+              newPerformances[meet][place] = '-';
             }
+          } else {
+            newPerformances[meet][place] = '-';
           }
-          
-          const formattedPerformances = {};
-          Object.entries(results).forEach(([meet, meetData]) => {
-            formattedPerformances[meet] = {};
-            Object.entries(meetData).forEach(([place, perf]) => {
-              if (perf !== null) {
-                formattedPerformances[meet][place] = formatPerformance(perf, eventType);
-              } else {
-                formattedPerformances[meet][place] = '-';
-              }
-            });
-          });
-          
-          setPerformances(formattedPerformances);
-        } catch (error) {
-          console.error('Error:', error);
         }
-      } else {
-        setPerformances({});
       }
+      
+      setPerformances(newPerformances);
     };
 
-    fetchPerformances();
-  }, [points, eventType, gender, season, baseMeet, basePlace]);
+    calculateEquivalentPerformances();
+  }, [points, baseMeet, basePlace, eventType, gender, season]);
+
+  if (!points) return null;
 
   return (
     <div className="competition-table">
-      {/* Base Points and Meet Level Settings */}
       <h2>Competition Level Comparison</h2>
+
+      {/* Base Meet Selection */}
       <div className="settings-grid">
         <div className="setting-group">
           <label>Base Points</label>
@@ -158,7 +144,7 @@ function CompetitionTable({ points, eventType, gender, season }) {
           </div>
         )}
       </div>
-
+      
       {/* Required Performances Table */}
       <div className="table-section">
         <h3>Required Performances for Equivalent Points</h3>
@@ -180,8 +166,8 @@ function CompetitionTable({ points, eventType, gender, season }) {
                     <td>{place}</td>
                     {Object.keys(MEET_LABELS).map(meet => (
                       <td key={meet}>
-                        {COMPETITION_POINTS[meet][place] ? 
-                          (performances[meet]?.[place] || '-') : 
+                        {performances[meet]?.[place] ? 
+                          formatPerformance(performances[meet][place], eventType) : 
                           '-'}
                       </td>
                     ))}
