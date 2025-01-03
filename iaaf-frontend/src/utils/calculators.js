@@ -19,7 +19,7 @@ export const calculatePoints = async ({
         return null;
       }
 
-      const response = await fetch('http://localhost:5001/api/calculate-points', {
+      const response = await fetch('https://worldathleticspointconversion.onrender.com/api/calculate-points', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

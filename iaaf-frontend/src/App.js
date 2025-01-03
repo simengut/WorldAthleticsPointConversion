@@ -31,8 +31,7 @@ function App() {
           console.error('Invalid time format');
           return;
         }
-
-        const response = await fetch('http://localhost:5001/api/calculate-points', {
+        const response = await fetch('https://worldathleticspointconversion.onrender.com/api/calculate-points', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -59,7 +58,7 @@ function App() {
           setAdjustedPoints(basePoints);
         }
       } else {
-        const response = await fetch('http://localhost:5001/api/calculate-performance', {
+        const response = await fetch('https://worldathleticspointconversion.onrender.com/api/calculate-performance', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

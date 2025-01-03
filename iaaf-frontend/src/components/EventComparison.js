@@ -18,7 +18,7 @@ function EventComparison({ points, gender, season }) {
     try {
       const responses = await Promise.all(events.map(event => {
         const eventType = EVENT_CODES[event] || event;
-        return fetch('http://localhost:5001/api/calculate-performance', {
+        return fetch('https://worldathleticspointconversion.onrender.com/api/calculate-performance', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
