@@ -3,6 +3,8 @@ import { formatPerformance } from './utils/formatters';
 import { COMPETITION_POINTS, MEET_LABELS } from './utils/competitionPoints';
 import { EVENT_CODES } from './utils/eventCodes';
 
+const backendUrl = process.env.REACT_APP_BACKEND_URL;
+
 // New Row component to handle the API calls
 // function TableRow({ place, targetTotal, eventType, gender, season, baseMeet, basePlace }) {
 //   const [performances, setPerformances] = useState({});
@@ -89,7 +91,7 @@ function CompetitionTable({ points, eventType, gender, season }) {
           
           if (targetPoints > 0) {
             try {
-              const response = await fetch('https://worldathleticspointconversion.onrender.com/api/calculate-performance', {
+              const response = await fetch(`${backendUrl}/api/calculate-performance`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',

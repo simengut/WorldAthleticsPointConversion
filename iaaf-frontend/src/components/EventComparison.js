@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { EVENT_CODES } from '../utils/eventCodes';
 
+const backendUrl = process.env.REACT_APP_BACKEND_URL;
+
 function EventComparison({ points, gender, season }) {
   const [performances, setPerformances] = useState({});
 
@@ -18,7 +20,7 @@ function EventComparison({ points, gender, season }) {
     try {
       const responses = await Promise.all(events.map(event => {
         const eventType = EVENT_CODES[event] || event;
-        return fetch('https://worldathleticspointconversion.onrender.com/api/calculate-performance', {
+        return fetch(`${backendUrl}/api/calculate-performance`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

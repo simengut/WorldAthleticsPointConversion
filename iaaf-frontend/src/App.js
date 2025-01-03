@@ -11,6 +11,8 @@ import { needsWindInput, calculateWindModification } from './utils/windModificat
 import { EVENT_CODES } from './utils/eventCodes';
 import { formatTimeInput } from './utils/formatters';
 
+const backendUrl = process.env.REACT_APP_BACKEND_URL;
+
 function App() {
   const [activeTab, setActiveTab] = useState('calculator');
   const [gender, setGender] = useState('mens');
@@ -31,7 +33,7 @@ function App() {
           console.error('Invalid time format');
           return;
         }
-        const response = await fetch('https://worldathleticspointconversion.onrender.com/api/calculate-points', {
+        const response = await fetch(`${backendUrl}/api/calculate-points`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -58,7 +60,7 @@ function App() {
           setAdjustedPoints(basePoints);
         }
       } else {
-        const response = await fetch('https://worldathleticspointconversion.onrender.com/api/calculate-performance', {
+        const response = await fetch(`${backendUrl}/api/calculate-performance`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

@@ -2,6 +2,8 @@ import { formatTimeInput } from './formatters';
 import { EVENT_CODES } from './eventCodes';
 import { calculateWindModification, needsWindInput } from './windModification';
 
+const backendUrl = process.env.REACT_APP_BACKEND_URL;
+
 export const calculatePoints = async ({
   mode,
   performance,
@@ -19,7 +21,7 @@ export const calculatePoints = async ({
         return null;
       }
 
-      const response = await fetch('https://worldathleticspointconversion.onrender.com/api/calculate-points', {
+      const response = await fetch(`${backendUrl}/api/calculate-points`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
