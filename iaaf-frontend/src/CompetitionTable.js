@@ -53,6 +53,11 @@ function TableRow({ place, targetTotal, eventType, gender, season, baseMeet, bas
   );
 }
 
+// Helper function to get the last scoring place for a meet
+const getLastScoringPlace = (meet) => {
+  return Math.max(...Object.keys(COMPETITION_POINTS[meet]).map(Number)) + 1;
+};
+
 // Main CompetitionTable component
 function CompetitionTable({ points, eventType, gender, season }) {
   const [baseMeet, setBaseMeet] = useState('');
@@ -65,7 +70,7 @@ function CompetitionTable({ points, eventType, gender, season }) {
       if (!points) return;
 
       const basePoints = baseMeet && basePlace ? 
-        points + COMPETITION_POINTS[baseMeet][basePlace] : 
+        (basePlace === 'other' ? points : points + COMPETITION_POINTS[baseMeet][basePlace]) : 
         points;
 
       const newPerformances = {};
@@ -140,7 +145,20 @@ function CompetitionTable({ points, eventType, gender, season }) {
               {Object.keys(COMPETITION_POINTS[baseMeet]).map(place => (
                 <option key={place} value={place}>{place}</option>
               ))}
+              <option value="other">{getLastScoringPlace(baseMeet)}+</option>
             </select>
+          </div>
+        )}
+        {baseMeet && basePlace && (
+          <div className="setting-group">
+            <label>Total Points</label>
+            <div className="points-breakdown">
+              {points} + {basePlace === 'other' ? '0' : COMPETITION_POINTS[baseMeet][basePlace]} = {
+                basePlace === 'other' ? 
+                points : 
+                points + COMPETITION_POINTS[baseMeet][basePlace]
+              }
+            </div>
           </div>
         )}
       </div>
